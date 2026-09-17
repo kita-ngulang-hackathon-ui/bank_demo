@@ -5,4 +5,4 @@ node_modules/
 data/runtime/
 # Generated datasets: captured events and the labeled examples built from them.
 # Regenerate with `npm run simulate:population` - they are large and derived.
-out/
+
