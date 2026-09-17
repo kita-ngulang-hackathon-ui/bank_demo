@@ -41,10 +41,12 @@ import {
   createChallenge,
   getChallenge,
   consumeChallenge,
+  initUserLedger,
 } from "../store.js";
 import {
   getUser,
   getUserByUsername,
+  registerUser,
   contactsFor,
   publicUser,
   BILLERS,
@@ -93,6 +95,8 @@ function handle(fn) {
         "NO_PARTICIPANTS",
         "ALREADY_SETTLED",
         "NOT_FOUND",
+        "VALIDATION",
+        "USERNAME_TAKEN",
       ];
       const code = err?.code;
       const status = code === "NOT_FOUND" ? 404 : known.includes(code) ? 400 : 500;
@@ -307,6 +311,24 @@ export function makeSurfaceRouter({ surface, track }) {
 
   // -- session ------------------------------------------------------------
 
+  /** Shared by /session and /register: issue the cookie, log the login, and
+   *  fire the wallet.app.opened event (activity dips are one of the signals
+   *  the pipeline looks for, so a first-time login is an event too). */
+  async function startSession(req, res, user) {
+    const token = openSession(user.ref, surface);
+    setSessionCookie(res, surface, token);
+    recordLogin(user.ref, {
+      surface,
+      ip: req.ip,
+      userAgent: String(req.headers["user-agent"] ?? "").slice(0, 120),
+    });
+
+    const { event } = banking.sessionOpen({ userRef: user.ref, surface });
+    const tracked = await track({ ...event, action: "session.open" });
+
+    return { user: publicUser(user), balances: getBalances(user.ref), tracked };
+  }
+
   router.post(
     "/session",
     handle(async (req, res) => {
@@ -316,21 +338,23 @@ export function makeSurfaceRouter({ surface, track }) {
       if (!user || String(pin ?? "") !== expectedPin) {
         return res.status(401).json({ error: "BAD_CREDENTIALS", message: "User ID atau PIN salah." });
       }
+      res.json(await startSession(req, res, user));
+    })
+  );
 
-      const token = openSession(user.ref, surface);
-      setSessionCookie(res, surface, token);
-      recordLogin(user.ref, {
-        surface,
-        ip: req.ip,
-        userAgent: String(req.headers["user-agent"] ?? "").slice(0, 120),
-      });
-
-      // Session open is an ADA event too - it is how the engine sees activity
-      // dips, which is one of the signals the pipeline looks for.
-      const { event } = banking.sessionOpen({ userRef: user.ref, surface });
-      const tracked = await track({ ...event, action: "session.open" });
-
-      res.json({ user: publicUser(user), balances: getBalances(user.ref), tracked });
+  /** New demo customer, self-service. Creates the account with a starter
+   *  balance, then signs them straight in - same response shape as
+   *  /session, so the frontend doesn't need a separate success path. */
+  router.post(
+    "/register",
+    handle(async (req, res) => {
+      const { name, username, pin, confirmPin } = req.body ?? {};
+      if (String(pin ?? "") !== String(confirmPin ?? "")) {
+        return res.status(400).json({ error: "VALIDATION", message: "Konfirmasi PIN tidak cocok." });
+      }
+      const user = registerUser({ name, username, pin });
+      initUserLedger(user.ref, { checking: user.balance, savings: user.savingsBalance });
+      res.json(await startSession(req, res, user));
     })
   );
 

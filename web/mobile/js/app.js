@@ -1101,6 +1101,42 @@ demoApi.get("/users").then(({ items }) => {
   });
 });
 
+document.querySelectorAll(".auth-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".auth-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+    document
+      .querySelectorAll(".auth-panel")
+      .forEach((panel) => panel.classList.toggle("is-active", panel.id === `panel-${tab.dataset.auth}`));
+    document.querySelector("#loginError").classList.remove("is-visible");
+  });
+});
+
+document.querySelector("#registerForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const errorBox = document.querySelector("#loginError");
+  errorBox.classList.remove("is-visible");
+  const submitButton = document.querySelector("#registerSubmit");
+  submitButton.disabled = true;
+
+  try {
+    // Creates the account and signs in with one call, queued through the
+    // SDK exactly like every other mobile action.
+    await api.post("/register", {
+      name: document.querySelector("#regName").value.trim(),
+      username: document.querySelector("#regUsername").value.trim().toLowerCase(),
+      pin: document.querySelector("#regPin").value.trim(),
+      confirmPin: document.querySelector("#regPinConfirm").value.trim(),
+    });
+    await refresh();
+    showTab("home");
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.classList.add("is-visible");
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
 api
   .get("/session")
   .then(async () => {

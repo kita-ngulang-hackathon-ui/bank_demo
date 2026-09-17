@@ -34,6 +34,13 @@ function seed() {
 }
 seed();
 
+/** Initialises ledger state for a user created after startup (registration),
+ *  without touching anyone else's balances or history. */
+export function initUserLedger(ref, { checking = 0, savings = 0 } = {}) {
+  if (!state.balances.has(ref)) state.balances.set(ref, { checking, savings });
+  if (!state.transactions.has(ref)) state.transactions.set(ref, []);
+}
+
 // -- sessions ---------------------------------------------------------------
 
 export function openSession(userRef, surface) {

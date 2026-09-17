@@ -16,11 +16,34 @@
       <div class="scroll tab-page is-active" id="page-login" style="display:flex">
         <div class="login-card">
           <img src="/shared/assets/app-logo.svg" alt="wndr placeholder wordmark" />
-          <h2 style="margin:0 0 6px">Masuk</h2>
-          <p style="color:var(--app-muted);font-size:13px;margin:0 0 20px">
-            Pilih nasabah demo untuk membuka aplikasi.
-          </p>
-          <div id="loginUsers"></div>
+
+          <div class="auth-tabs">
+            <button class="auth-tab is-active" type="button" data-auth="login">Masuk</button>
+            <button class="auth-tab" type="button" data-auth="register">Daftar</button>
+          </div>
+
+          <div class="auth-panel is-active" id="panel-login">
+            <p style="color:var(--app-muted);font-size:13px;margin:0 0 16px">
+              Pilih nasabah demo untuk membuka aplikasi.
+            </p>
+            <div id="loginUsers"></div>
+          </div>
+
+          <div class="auth-panel" id="panel-register">
+            <p style="color:var(--app-muted);font-size:13px;margin:0 0 16px">
+              Buat akun nasabah demo baru.
+            </p>
+            <form id="registerForm">
+              <div class="m-field"><label>Nama Lengkap</label><input id="regName" placeholder="Nama Anda" required /></div>
+              <div class="m-field"><label>User ID</label><input id="regUsername" placeholder="hurufkecilangka" required /></div>
+              <div class="m-field"><label>PIN</label><input id="regPin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" required /></div>
+              <div class="m-field"><label>Konfirmasi PIN</label><input id="regPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" required /></div>
+              <button class="btn-primary" type="submit" id="registerSubmit">Buat Akun</button>
+            </form>
+          </div>
+
+          <div class="login-error" id="loginError"></div>
+
           <div class="sdk-note">
             Surface ini memakai <b>ADA SDK</b>: event masuk antrean lalu dikirim
             batch ke <code>/v1/events:batch</code>.

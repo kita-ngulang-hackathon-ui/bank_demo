@@ -136,6 +136,70 @@ const byUsername = new Map(USERS.map((u) => [u.username, u]));
 
 export const getUser = (ref) => byRef.get(ref) ?? null;
 export const getUserByUsername = (username) => byUsername.get(String(username ?? "").toLowerCase()) ?? null;
+
+// -- registration -------------------------------------------------------
+
+/** Circles a newly registered user can join, round-robin, so they land in a
+ *  graph with real counterparties from their first login instead of alone. */
+const CIRCLES = [...new Set(USERS.map((u) => u.circle))];
+const AVATAR_PALETTE = ["#F26F21", "#00857D", "#7A3FF2", "#1F6FEB", "#E0245E", "#0F9D58", "#B8860B", "#3D5AFE"];
+let registeredCount = 0;
+
+const USERNAME_RULE = /^[a-z][a-z0-9_]{2,19}$/;
+const PIN_RULE = /^\d{6}$/;
+
+/** Creates a new demo customer. Throws with a `.code` on any validation
+ *  failure, same convention as banking.js, so the route layer can turn it
+ *  into a clean 4xx without a second switch statement. */
+export function registerUser({ name, username, pin }) {
+  const cleanName = String(name ?? "").trim();
+  const cleanUsername = String(username ?? "").trim().toLowerCase();
+
+  if (cleanName.length < 3) {
+    const err = new Error("Nama minimal 3 karakter.");
+    err.code = "VALIDATION";
+    throw err;
+  }
+  if (!USERNAME_RULE.test(cleanUsername)) {
+    const err = new Error("User ID 3-20 karakter, huruf kecil/angka, diawali huruf.");
+    err.code = "VALIDATION";
+    throw err;
+  }
+  if (!PIN_RULE.test(String(pin ?? ""))) {
+    const err = new Error("PIN harus 6 digit angka.");
+    err.code = "VALIDATION";
+    throw err;
+  }
+  if (byUsername.has(cleanUsername)) {
+    const err = new Error("User ID sudah digunakan.");
+    err.code = "USERNAME_TAKEN";
+    throw err;
+  }
+
+  registeredCount += 1;
+  const seq = USERS.length + 1;
+  const ref = `bd-user-${String(seq).padStart(3, "0")}`;
+  const circle = CIRCLES[registeredCount % CIRCLES.length];
+
+  const user = {
+    ref,
+    name: cleanName,
+    username: cleanUsername,
+    pin: String(pin),
+    accountNumber: `088${String(1_000_000 + seq).slice(1)}`,
+    cardLast4: String(1000 + Math.floor(Math.random() * 9000)),
+    balance: 500_000,
+    savingsBalance: 0,
+    attributes: { region: "JAKARTA", cohort: "C4", segment: "NEW_CUSTOMER", tenure_months: "0" },
+    circle,
+    avatarColor: AVATAR_PALETTE[seq % AVATAR_PALETTE.length],
+  };
+
+  USERS.push(user);
+  byRef.set(user.ref, user);
+  byUsername.set(user.username, user);
+  return user;
+}
 export const getBiller = (ref) => BILLERS.find((b) => b.ref === ref) ?? null;
 export const getMerchant = (ref) => MERCHANTS.find((m) => m.ref === ref) ?? null;
 

@@ -132,6 +132,40 @@ body {
   color: var(--white);
 }
 
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--ink-50);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.auth-tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px;
+  border-radius: 6px;
+}
+
+.auth-tab.is-active {
+  background: var(--white);
+  color: var(--brand-orange);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-panel {
+  display: none;
+}
+
+.auth-panel.is-active {
+  display: block;
+}
+
 .login-form .btn {
   width: 100%;
   margin-top: 6px;

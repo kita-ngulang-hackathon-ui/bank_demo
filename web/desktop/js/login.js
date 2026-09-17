@@ -79,3 +79,44 @@ form.addEventListener("submit", async (event) => {
     submitButton.textContent = "Masuk";
   }
 });
+
+// ------------------------------------------------------------- register ---
+
+document.querySelectorAll(".auth-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".auth-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+    document
+      .querySelectorAll(".auth-panel")
+      .forEach((panel) => panel.classList.toggle("is-active", panel.id === `panel-${tab.dataset.auth}`));
+    errorBox.classList.remove("is-visible");
+  });
+});
+
+const registerForm = document.querySelector("#registerForm");
+const registerSubmit = document.querySelector("#registerSubmit");
+
+registerForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  errorBox.classList.remove("is-visible");
+  registerSubmit.disabled = true;
+  registerSubmit.textContent = "Memproses...";
+
+  try {
+    // Creates the account and signs in with one call - the ADA
+    // wallet.app.opened event for the first login also goes out here.
+    await api.post("/register", {
+      name: document.querySelector("#regName").value.trim(),
+      username: document.querySelector("#regUsername").value.trim().toLowerCase(),
+      pin: document.querySelector("#regPin").value.trim(),
+      confirmPin: document.querySelector("#regPinConfirm").value.trim(),
+    });
+    window.location.href = "/app.html";
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.classList.add("is-visible");
+    toast(err.message, "error");
+  } finally {
+    registerSubmit.disabled = false;
+    registerSubmit.textContent = "Buat Akun";
+  }
+});

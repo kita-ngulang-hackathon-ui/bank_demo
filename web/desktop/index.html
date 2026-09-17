@@ -36,27 +36,58 @@
           <button type="button">EN</button>
         </div>
 
-        <h2>Masuk ke akun Anda</h2>
-        <p class="sub">Gunakan User ID dan PIN Internet Banking.</p>
+        <div class="auth-tabs">
+          <button class="auth-tab is-active" type="button" data-auth="login">Masuk</button>
+          <button class="auth-tab" type="button" data-auth="register">Daftar</button>
+        </div>
 
         <div class="login-error" id="loginError"></div>
 
-        <form class="login-form" id="loginForm">
-          <div class="field">
-            <label for="username">User ID</label>
-            <input id="username" name="username" autocomplete="username" placeholder="andipratama" required />
-          </div>
-          <div class="field">
-            <label for="pin">PIN</label>
-            <input id="pin" name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" value="123456" required />
-            <div class="help">Semua nasabah demo memakai PIN 123456.</div>
-          </div>
-          <button class="btn btn--primary" type="submit" id="loginSubmit">Masuk</button>
-        </form>
+        <div class="auth-panel is-active" id="panel-login">
+          <p class="sub">Gunakan User ID dan PIN Internet Banking.</p>
+          <form class="login-form" id="loginForm">
+            <div class="field">
+              <label for="username">User ID</label>
+              <input id="username" name="username" autocomplete="username" placeholder="andipratama" required />
+            </div>
+            <div class="field">
+              <label for="pin">PIN</label>
+              <input id="pin" name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" value="123456" required />
+              <div class="help">Semua nasabah demo memakai PIN 123456.</div>
+            </div>
+            <button class="btn btn--primary" type="submit" id="loginSubmit">Masuk</button>
+          </form>
 
-        <div class="demo-users">
-          <h3>Pilih nasabah demo</h3>
-          <div id="demoUsers"></div>
+          <div class="demo-users">
+            <h3>Pilih nasabah demo</h3>
+            <div id="demoUsers"></div>
+          </div>
+        </div>
+
+        <div class="auth-panel" id="panel-register">
+          <p class="sub">Buat akun nasabah demo baru.</p>
+          <form class="login-form" id="registerForm">
+            <div class="field">
+              <label for="regName">Nama Lengkap</label>
+              <input id="regName" name="name" placeholder="Nama Anda" required />
+            </div>
+            <div class="field">
+              <label for="regUsername">User ID</label>
+              <input id="regUsername" name="username" autocomplete="username" placeholder="hurufkecilangka" required />
+              <div class="help">3-20 karakter, huruf kecil/angka, diawali huruf.</div>
+            </div>
+            <div class="field--inline">
+              <div class="field">
+                <label for="regPin">PIN</label>
+                <input id="regPin" name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" required />
+              </div>
+              <div class="field">
+                <label for="regPinConfirm">Konfirmasi PIN</label>
+                <input id="regPinConfirm" name="confirmPin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" required />
+              </div>
+            </div>
+            <button class="btn btn--primary" type="submit" id="registerSubmit">Buat Akun</button>
+          </form>
         </div>
 
         <p class="mobile-link">
