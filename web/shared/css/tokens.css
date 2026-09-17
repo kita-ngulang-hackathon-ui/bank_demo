@@ -1,0 +1,89 @@
+/* Design tokens shared by both surfaces.
+   Colours are a placeholder palette in the same family as the product being
+   recreated; swap these six values when the real brand assets land. */
+:root {
+  --brand-orange: #f26f21;
+  --brand-orange-dark: #d85c12;
+  --brand-teal: #00787a;
+  --brand-teal-dark: #005e60;
+  --brand-navy: #0e2a3a;
+  --brand-sand: #fff6ef;
+
+  --ink-900: #10161c;
+  --ink-700: #33414d;
+  --ink-500: #64748b;
+  --ink-300: #a6b2bf;
+  --ink-100: #e4e9ee;
+  --ink-50: #f4f7fa;
+  --white: #ffffff;
+
+  --ok: #0f9d58;
+  --warn: #e4a11b;
+  --danger: #d93025;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 22, 28, 0.08);
+  --shadow: 0 6px 18px rgba(16, 22, 28, 0.1);
+  --shadow-lg: 0 18px 48px rgba(16, 22, 28, 0.18);
+
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-num: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+a {
+  color: inherit;
+}
+
+.demo-banner {
+  background: repeating-linear-gradient(
+    45deg,
+    #1b2733,
+    #1b2733 12px,
+    #23303e 12px,
+    #23303e 24px
+  );
+  color: #ffd9c2;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 5px 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

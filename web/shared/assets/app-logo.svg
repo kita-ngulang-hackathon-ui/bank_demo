@@ -1,0 +1,12 @@
+<!-- PLACEHOLDER wordmark for the mobile superapp. Not a real product logo. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 40" width="140" height="40" role="img" aria-label="wndr placeholder wordmark">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8A3D"/>
+      <stop offset="55%" stop-color="#F2408A"/>
+      <stop offset="100%" stop-color="#7A3FF2"/>
+    </linearGradient>
+  </defs>
+  <text x="2" y="30" font-family="Inter, Segoe UI, sans-serif" font-size="28" font-weight="800" fill="url(#g)" letter-spacing="-1">wndr</text>
+  <circle cx="122" cy="14" r="5" fill="url(#g)"/>
+</svg>
