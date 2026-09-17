@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bank_demo — presenter console</title>
+    <link rel="icon" href="/shared/assets/logo-mark.svg" />
+    <link rel="stylesheet" href="/shared/css/tokens.css" />
+    <style>
+      body {
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: #8b949e;
+        font-size: 12px;
+        margin: 0 0 22px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .tile {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .tile small {
+        color: #8b949e;
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .tile b {
+        display: block;
+        font-size: 19px;
+        margin-top: 6px;
+      }
+      .ok {
+        color: #3fb950;
+      }
+      .bad {
+        color: #f85149;
+      }
+      .warn {
+        color: #d29922;
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      button {
+        background: #21262d;
+        border: 1px solid #30363d;
+        color: #e6edf3;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 12px;
+      }
+      button:hover {
+        border-color: #f26f21;
+        color: #f26f21;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+      }
+      th {
+        text-align: left;
+        color: #8b949e;
+        border-bottom: 1px solid #30363d;
+        padding: 8px 10px;
+        font-weight: 500;
+      }
+      td {
+        padding: 7px 10px;
+        border-bottom: 1px solid #21262d;
+        vertical-align: top;
+      }
+      .pill {
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 10px;
+      }
+      .SENT {
+        background: #12331f;
+        color: #3fb950;
+      }
+      .QUEUED,
+      .PENDING {
+        background: #33280f;
+        color: #d29922;
+      }
+      .FAILED {
+        background: #3b1315;
+        color: #f85149;
+      }
+      .DUPLICATE {
+        background: #21262d;
+        color: #8b949e;
+      }
+      .section {
+        margin-bottom: 26px;
+      }
+      .section h2 {
+        font-size: 13px;
+        color: #f26f21;
+        margin: 0 0 10px;
+      }
+      pre {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 12px;
+        overflow: auto;
+        font-size: 11px;
+        color: #c9d1d9;
+      }
+      a {
+        color: #f26f21;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>bank_demo — presenter console</h1>
+    <p class="sub">
+      What bank_demo has sent to ADA and what came back.
+      <a href="/">desktop portal</a> · <a href="/wondr/">wndr app</a>
+    </p>
+
+    <div class="grid" id="tiles"></div>
+
+    <div class="bar">
+      <button id="refreshRecs">Pull recommendations now</button>
+      <button id="flushSdk">Flush SDK queue</button>
+      <button id="resetDemo">Reset local demo state</button>
+      <button id="reload">Reload</button>
+    </div>
+
+    <div class="section">
+      <h2>Wire log — events sent to ADA</h2>
+      <table>
+        <thead>
+          <tr><th>time</th><th>surface</th><th>transport</th><th>event_type</th><th>user_ref</th><th>status</th><th>detail</th></tr>
+        </thead>
+        <tbody id="wireBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Approved recommendations pulled back</h2>
+      <table>
+        <thead>
+          <tr><th>recommendation_id</th><th>incentive</th><th>cost</th><th>subject</th><th>routed to</th><th>acked</th></tr>
+        </thead>
+        <tbody id="offersBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Status</h2>
+      <pre id="statusDump">loading…</pre>
+    </div>
+
+    <script type="module">
+      import { makeApi, esc, timeShort, idr } from "/shared/js/api.js";
+
+      const api = makeApi("/api/demo");
+
+      async function load() {
+        const [status, wire, offers] = await Promise.all([
+          api.get("/status").catch((err) => ({ error: err.message })),
+          api.get("/wire?limit=80").catch(() => ({ items: [], stats: {} })),
+          api.get("/offers").catch(() => ({ items: [] })),
+        ]);
+
+        const reachable = status?.ada?.reachable;
+        document.querySelector("#tiles").innerHTML = `
+          <div class="tile"><small>ADA reachable</small><b class="${reachable ? "ok" : "bad"}">${reachable ? "yes" : "no"}</b>${esc(status?.ada?.baseUrl ?? "")}</div>
+          <div class="tile"><small>events sent</small><b class="ok">${wire.stats?.sent ?? 0}</b>failed ${wire.stats?.failed ?? 0} · dup ${wire.stats?.duplicate ?? 0}</div>
+          <div class="tile"><small>SDK queue</small><b class="${(wire.queued ?? 0) > 0 ? "warn" : ""}">${wire.queued ?? 0}</b>batches sent ${wire.sdk?.sent ?? 0}</div>
+          <div class="tile"><small>offers pulled</small><b>${offers.items?.length ?? 0}</b>routing ${status?.recommendations?.pseudonymRouting ? "per-user" : "shared inbox"}</div>`;
+
+        document.querySelector("#wireBody").innerHTML = (wire.items ?? [])
+          .map(
+            (row) => `
+            <tr>
+              <td>${timeShort(row.at)}</td>
+              <td>${esc(row.surface)}</td>
+              <td>${esc(row.transport)}</td>
+              <td>${esc(row.eventType)}</td>
+              <td>${esc(row.userRef)}</td>
+              <td><span class="pill ${esc(row.status)}">${esc(row.status)}</span></td>
+              <td>${esc(row.error ?? JSON.stringify(row.payload ?? {}))}</td>
+            </tr>`
+          )
+          .join("");
+
+        document.querySelector("#offersBody").innerHTML = (offers.items ?? [])
+          .map(
+            (offer) => `
+            <tr>
+              <td>${esc(offer.recommendationId.slice(0, 8))}…</td>
+              <td>${esc(offer.incentiveCode)}</td>
+              <td>${idr(offer.costIdr)}</td>
+              <td>${esc(offer.subjectType)}</td>
+              <td>${esc(offer.targetUserRef ?? "shared inbox")}</td>
+              <td>${offer.acked ? "yes" : "no"}</td>
+            </tr>`
+          )
+          .join("");
+
+        document.querySelector("#statusDump").textContent = JSON.stringify(status, null, 2);
+      }
+
+      document.querySelector("#refreshRecs").addEventListener("click", async (event) => {
+        event.target.disabled = true;
+        await api.post("/recommendations/refresh").catch(() => {});
+        event.target.disabled = false;
+        load();
+      });
+
+      document.querySelector("#flushSdk").addEventListener("click", async () => {
+        await api.post("/flush").catch(() => {});
+        load();
+      });
+
+      document.querySelector("#resetDemo").addEventListener("click", async () => {
+        if (!confirm("Reset local balances, transactions, wire log and offers?")) return;
+        await api.post("/reset").catch(() => {});
+        load();
+      });
+
+      document.querySelector("#reload").addEventListener("click", load);
+
+      load();
+      setInterval(load, 6000);
+    </script>
+  </body>
+</html>
