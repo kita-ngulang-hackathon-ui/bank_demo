@@ -1,0 +1,18 @@
+{
+  "name": "bank-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "bank_demo - desktop internet banking portal + mobile superapp surface. Client fintech for the ADA Solutions retention engine.",
+  "engines": { "node": ">=22" },
+  "workspaces": ["packages/*", "server"],
+  "scripts": {
+    "dev": "node --env-file=.env --watch server/src/index.js",
+    "start": "node --env-file=.env server/src/index.js",
+    "check:ada": "node --env-file=.env scripts/check-ada.js",
+    "simulate": "node --env-file=.env scripts/simulate-network.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
