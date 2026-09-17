@@ -293,9 +293,27 @@ export function makeSurfaceRouter({ surface, track }) {
   const router = Router();
   const auth = requireSession(surface);
 
+  /** Lets a caller stamp the ADA event with a past timestamp.
+   *
+   *  Only `scripts/simulate-population.js` uses it, and only when
+   *  DEMO_ALLOW_BACKDATE is on: laying down 90 days of history over live HTTP
+   *  would otherwise land every event on today, collapsing the 30/60/90-day
+   *  windows ADA's graph and churn features are built from. It moves the ADA
+   *  event only - the local ledger and the receipt still say "now".
+   */
+  router.use((req, _res, next) => {
+    if (!config.session.allowBackdate) return next();
+    const raw = req.headers["x-demo-occurred-at"];
+    if (raw) {
+      const when = new Date(String(raw));
+      if (!Number.isNaN(when.getTime())) req.demoOccurredAt = when.toISOString();
+    }
+    next();
+  });
+
   /** Runs a movement and sends its event(s). Shared by the direct endpoints
    *  and by the token-confirmed path so they cannot drift apart. */
-  async function runMovement(kind, userRef, request) {
+  async function runMovement(kind, userRef, request, { occurredAt } = {}) {
     const movement = MOVEMENTS[kind];
     if (!movement) {
       const err = new Error(`unknown transaction kind "${kind}"`);
@@ -305,7 +323,9 @@ export function makeSurfaceRouter({ surface, track }) {
     const result = movement.execute(userRef, request);
     const events = result.events ?? (result.event ? [result.event] : []);
     const tracked = [];
-    for (const event of events) tracked.push(await track({ ...event, action: movement.action }));
+    for (const event of events) {
+      tracked.push(await track({ ...event, action: movement.action, occurredAt }));
+    }
     return { receipt: result.receipt, tracked: tracked.length === 1 ? tracked[0] : tracked };
   }
 
@@ -324,7 +344,7 @@ export function makeSurfaceRouter({ surface, track }) {
     });
 
     const { event } = banking.sessionOpen({ userRef: user.ref, surface });
-    const tracked = await track({ ...event, action: "session.open" });
+    const tracked = await track({ ...event, action: "session.open", occurredAt: req.demoOccurredAt });
 
     return { user: publicUser(user), balances: getBalances(user.ref), tracked };
   }
@@ -533,7 +553,9 @@ export function makeSurfaceRouter({ surface, track }) {
 
       // Consume first: a token is single-use even if execution then fails.
       consumeChallenge(challengeId);
-      const result = await runMovement(challenge.kind, req.userRef, challenge.request);
+      const result = await runMovement(challenge.kind, req.userRef, challenge.request, {
+        occurredAt: req.demoOccurredAt,
+      });
       res.json({ ...result, kind: challenge.kind, summary: challenge.summary });
     })
   );
@@ -545,7 +567,9 @@ export function makeSurfaceRouter({ surface, track }) {
       path,
       auth,
       handle(async (req, res) => {
-        const result = await runMovement(kind, req.userRef, mapBody(req.body ?? {}, req));
+        const result = await runMovement(kind, req.userRef, mapBody(req.body ?? {}, req), {
+          occurredAt: req.demoOccurredAt,
+        });
         res.json(result);
       })
     );
@@ -565,7 +589,9 @@ export function makeSurfaceRouter({ surface, track }) {
     "/split/:splitId/settle",
     auth,
     handle(async (req, res) => {
-      const result = await runMovement("splitSettle", req.userRef, { splitId: req.params.splitId });
+      const result = await runMovement("splitSettle", req.userRef, { splitId: req.params.splitId }, {
+        occurredAt: req.demoOccurredAt,
+      });
       res.json(result);
     })
   );
@@ -656,7 +682,7 @@ export function makeSurfaceRouter({ surface, track }) {
         recipientRef: row.recipientRef,
         amount: row.amount,
         note: row.note,
-      });
+      }, { occurredAt: req.demoOccurredAt });
 
       const freq = getFrequency(row.frequency);
       updateSchedule(row.id, {

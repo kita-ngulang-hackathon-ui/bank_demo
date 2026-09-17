@@ -15,13 +15,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-import { config, assertConfigured } from "./config.js";
+import { config, assertConfigured, capturesToFile, sendsToAda } from "./config.js";
+import { captureFilePath } from "./ada/capture.js";
 import { cookieMiddleware } from "./middleware/auth.js";
 import { makeSurfaceRouter } from "./routes/surface.js";
 import { demoRouter } from "./routes/demo.js";
 import { trackDesktop } from "./ada/desktop.js";
 import { trackMobile, startSdk, adaSdk } from "./ada/sdk.js";
 import { startRecommendationPoller } from "./ada/recommendations.js";
+import { USERS } from "./data/users.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(here, "../../web");
@@ -60,7 +62,13 @@ const server = app.listen(config.port, () => {
   console.log(`  Desktop portal   http://localhost:${config.port}/`);
   console.log(`  ${config.brand.mobileAppName} mobile app   http://localhost:${config.port}/wondr/`);
   console.log(`  Presenter ops    http://localhost:${config.port}/ops/`);
-  console.log(`  ADA ingest       ${config.ada.baseUrl}  (tenant ${config.ada.tenantSlug})`);
+  console.log(
+    sendsToAda()
+      ? `  ADA ingest       ${config.ada.baseUrl}  (tenant ${config.ada.tenantSlug})`
+      : `  ADA ingest       disabled (ADA_TRANSPORT_MODE=capture)`
+  );
+  if (capturesToFile()) console.log(`  Event capture    ${captureFilePath()}`);
+  console.log(`  Population       ${USERS.length} users`);
   console.log(
     `  Offer routing    ${config.pseudonym.enabled ? "per-user (pseudonym key set)" : "shared inbox (no pseudonym key)"}\n`
   );

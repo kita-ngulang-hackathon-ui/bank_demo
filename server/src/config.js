@@ -32,6 +32,12 @@ export const config = {
     /** The simulated e-Secure token device shows the expected code on screen.
      *  Turn it off to make a presenter type a code they cannot see. */
     showToken: bool(process.env.DEMO_SHOW_TOKEN, true),
+    /** Lets a caller stamp an ADA event with a past timestamp via the
+     *  `X-Demo-Occurred-At` header. Only the simulation script uses it, and
+     *  only the ADA event moves - the local ledger still says "now". Off
+     *  unless explicitly enabled, because a live surface must never be able
+     *  to backdate its own analytics. */
+    allowBackdate: bool(process.env.DEMO_ALLOW_BACKDATE, false),
   },
 
   ada: {
@@ -41,6 +47,28 @@ export const config = {
     timeoutMs: int(process.env.ADA_TIMEOUT_MS, 4000),
     maxBatchSize: Math.min(int(process.env.ADA_MAX_BATCH_SIZE, 500), 500),
     failOpen: bool(process.env.ADA_FAIL_OPEN, true),
+  },
+
+  /** Where ADA-bound events go.
+   *
+   *  - "send"    (default) post to ADA, exactly as the demo has always done
+   *  - "capture" write them to a JSONL file and make no HTTP call at all
+   *  - "both"    capture and send
+   *
+   *  "capture" is what the population simulation uses: it needs no ADA stack,
+   *  no API key and no 4s timeout per event, and the file it produces is the
+   *  input `python -m worker.main --events` eats.
+   */
+  capture: {
+    mode: (process.env.ADA_TRANSPORT_MODE ?? "send").toLowerCase(),
+    file: process.env.ADA_CAPTURE_FILE ?? "out/ada-events.jsonl",
+  },
+
+  /** The synthetic customer population. The 8 handwritten users are always
+   *  present; `size` tops the roster up with generated ones. */
+  population: {
+    size: int(process.env.DEMO_POPULATION_SIZE, 8),
+    seed: process.env.DEMO_POPULATION_SEED ?? "bank_demo_population_v1",
   },
 
   sdk: {
@@ -75,13 +103,24 @@ export function publicConfig() {
       pseudonymRouting: config.pseudonym.enabled,
       idleTimeoutMs: config.session.idleTimeoutMs,
       showToken: config.session.showToken,
+      transportMode: config.capture.mode,
+      populationSize: config.population.size,
     },
   };
 }
 
+export const capturesToFile = () => config.capture.mode === "capture" || config.capture.mode === "both";
+export const sendsToAda = () => config.capture.mode !== "capture";
+
 export function assertConfigured() {
   const problems = [];
-  if (!config.ada.apiKey) problems.push("ADA_API_KEY is empty (see ADA_project/.env INGEST_API_KEY_WALLET_DEMO)");
-  if (!config.ada.baseUrl) problems.push("ADA_BASE_URL is empty");
+  if (!["send", "capture", "both"].includes(config.capture.mode)) {
+    problems.push(`ADA_TRANSPORT_MODE="${config.capture.mode}" is not one of send | capture | both`);
+  }
+  // In capture mode nothing is posted, so an empty key is not a problem.
+  if (sendsToAda() && !config.ada.apiKey) {
+    problems.push("ADA_API_KEY is empty (see ADA_project/.env INGEST_API_KEY_WALLET_DEMO)");
+  }
+  if (sendsToAda() && !config.ada.baseUrl) problems.push("ADA_BASE_URL is empty");
   return problems;
 }

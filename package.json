@@ -10,7 +10,9 @@
     "dev": "node --env-file=.env --watch server/src/index.js",
     "start": "node --env-file=.env server/src/index.js",
     "check:ada": "node --env-file=.env scripts/check-ada.js",
-    "simulate": "node --env-file=.env scripts/simulate-network.js"
+    "simulate": "node --env-file=.env scripts/simulate-network.js",
+    "simulate:population": "node --env-file=.env scripts/simulate-population.js",
+    "make:labels": "node scripts/make-labeled-examples.js"
   },
   "dependencies": {
     "express": "^4.19.2"

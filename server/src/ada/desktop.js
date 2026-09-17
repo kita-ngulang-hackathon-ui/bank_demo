@@ -6,13 +6,14 @@
  * screen shows it.
  */
 import { buildEvent, postEvent } from "./http.js";
-import { config } from "../config.js";
+import { config, capturesToFile, sendsToAda } from "../config.js";
+import { captureEvent } from "./capture.js";
 import { logWire, updateWire } from "../store.js";
 
-export async function trackDesktop({ eventType, userRef, payload, userAttributes, action }) {
+export async function trackDesktop({ eventType, userRef, payload, userAttributes, action, occurredAt }) {
   let event;
   try {
-    event = buildEvent({ eventType, userRef, payload, userAttributes });
+    event = buildEvent({ eventType, userRef, payload, userAttributes, occurredAt });
   } catch (err) {
     logWire({
       surface: "desktop",
@@ -27,16 +28,24 @@ export async function trackDesktop({ eventType, userRef, payload, userAttributes
     throw err;
   }
 
+  const captured = capturesToFile() ? captureEvent(event) : null;
+
   const row = logWire({
     surface: "desktop",
-    transport: "api",
+    transport: capturesToFile() && !sendsToAda() ? "capture" : "api",
     action,
     eventType,
     userRef,
     clientEventId: event.client_event_id,
     payload: event.payload,
-    status: "PENDING",
+    status: sendsToAda() ? "PENDING" : captured?.captured ? "CAPTURED" : "FAILED",
+    ...(captured?.error ? { error: captured.error } : {}),
   });
+
+  // Capture-only: the file IS the destination, so there is nothing to post.
+  if (!sendsToAda()) {
+    return { sent: false, captured: Boolean(captured?.captured), clientEventId: event.client_event_id, wireId: row.id };
+  }
 
   try {
     const result = await postEvent(event);

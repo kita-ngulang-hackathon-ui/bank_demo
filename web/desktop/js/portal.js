@@ -354,7 +354,7 @@ async function refresh() {
 function renderHeader() {
   document.querySelector("#userName").textContent = state.user.name;
   document.querySelector("#userMeta").textContent =
-    `${state.user.accountNumber} · ${state.user.attributes.region} · ${state.user.attributes.segment}`;
+    `${state.user.accountNumber} · ${state.user.profile.region} · ${state.user.profile.segment}`;
 }
 
 function renderAccounts() {

@@ -12,7 +12,7 @@ import { listApprovedRecommendations, ackDelivery } from "./http.js";
 import { userRefForPseudonym, pseudonymRoutingEnabled } from "./pseudonym.js";
 import { copyForIncentive } from "../data/incentives.js";
 import { upsertOffer, getOffer, listAllOffers } from "../store.js";
-import { config } from "../config.js";
+import { config, sendsToAda } from "../config.js";
 
 let timer = null;
 let lastPoll = { at: null, ok: null, count: 0, error: null };
@@ -91,6 +91,12 @@ export async function pollRecommendations() {
 
 export function startRecommendationPoller() {
   if (timer) return timer;
+  // Capture mode runs with no ADA behind it, so polling would only log a
+  // connection error every RECS_POLL_INTERVAL_MS.
+  if (!sendsToAda()) {
+    lastPoll = { at: null, ok: null, count: 0, error: "disabled: ADA_TRANSPORT_MODE=capture" };
+    return null;
+  }
   pollRecommendations().catch((err) => console.error("[ada-recs] first poll failed:", err?.message ?? err));
   timer = setInterval(() => {
     pollRecommendations().catch((err) => console.error("[ada-recs] poll failed:", err?.message ?? err));

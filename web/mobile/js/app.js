@@ -954,7 +954,7 @@ function render() {
   document.querySelector("#greetLabel").textContent = greetingFor(new Date());
   document.querySelector("#balanceMain").textContent = idr(state.balances.checking);
   document.querySelector("#balanceSavings").textContent = idr(state.balances.savings);
-  document.querySelector("#balanceAccount").textContent = `${state.user.accountNumber} · ${state.user.attributes.segment}`;
+  document.querySelector("#balanceAccount").textContent = `${state.user.accountNumber} · ${state.user.profile.segment}`;
   document.querySelector("#circleName").textContent = state.user.circle;
 
   document.querySelector("#offerCount").textContent = state.offers.length ? `${state.offers.length} aktif` : "";
@@ -973,7 +973,7 @@ function render() {
       (c) => `
       <div class="list-item">
         <div class="list-item__icon" style="background:${esc(c.avatarColor)}">${esc(initials(c.name))}</div>
-        <div class="list-item__body"><b>${esc(c.name)}</b><small>${esc(c.circle)} · ${esc(c.attributes.region)}</small></div>
+        <div class="list-item__body"><b>${esc(c.name)}</b><small>${esc(c.circle)} · ${esc(c.profile.region)}</small></div>
       </div>`
     )
     .join("");
@@ -995,10 +995,10 @@ function render() {
   document.querySelector("#profileList").innerHTML = `
     <div class="list-item">
       <div class="list-item__icon" style="background:${esc(state.user.avatarColor)}">${esc(initials(state.user.name))}</div>
-      <div class="list-item__body"><b>${esc(state.user.name)}</b><small>${esc(state.user.ref)} · ${esc(state.user.attributes.cohort)}</small></div>
+      <div class="list-item__body"><b>${esc(state.user.name)}</b><small>${esc(state.user.ref)} · ${esc(state.user.attributes.cohort_key)}</small></div>
     </div>
-    <div class="list-item"><div class="list-item__icon">◎</div><div class="list-item__body"><b>Region</b><small>${esc(state.user.attributes.region)}</small></div></div>
-    <div class="list-item"><div class="list-item__icon">★</div><div class="list-item__body"><b>Tenure</b><small>${esc(state.user.attributes.tenure_months)} bulan</small></div></div>`;
+    <div class="list-item"><div class="list-item__icon">◎</div><div class="list-item__body"><b>Region</b><small>${esc(state.user.profile.region)}</small></div></div>
+    <div class="list-item"><div class="list-item__icon">★</div><div class="list-item__body"><b>Tenure</b><small>${esc(state.user.profile.tenureMonths)} bulan</small></div></div>`;
 
   document.querySelector("#wireList").innerHTML = state.wire.length
     ? state.wire
@@ -1081,7 +1081,7 @@ demoApi.get("/users").then(({ items }) => {
       (user) => `
       <button class="list-item" style="width:100%;text-align:left" data-username="${esc(user.username)}">
         <div class="list-item__icon" style="background:${esc(user.avatarColor)}">${esc(initials(user.name))}</div>
-        <div class="list-item__body"><b>${esc(user.name)}</b><small>${esc(user.attributes.segment)} · ${esc(user.circle)}</small></div>
+        <div class="list-item__body"><b>${esc(user.name)}</b><small>${esc(user.profile.segment)} · ${esc(user.circle)}</small></div>
       </button>`
     )
     .join("");

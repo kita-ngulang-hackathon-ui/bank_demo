@@ -6,12 +6,15 @@
  * point: analytics must never sit in the payment path.
  */
 import { AdaClient } from "@bank-demo/ada-sdk";
-import { config } from "../config.js";
+import { config, capturesToFile, sendsToAda } from "../config.js";
+import { captureEvent } from "./capture.js";
 import { logWire, updateWire } from "../store.js";
 
 export const adaSdk = new AdaClient({
   baseUrl: config.ada.baseUrl,
-  apiKey: config.ada.apiKey,
+  // The constructor requires a key. In capture mode nothing is ever posted, so
+  // a placeholder keeps the client constructible without one configured.
+  apiKey: config.ada.apiKey || (sendsToAda() ? "" : "capture-mode-no-key"),
   timeoutMs: config.ada.timeoutMs,
   maxBatchSize: config.ada.maxBatchSize,
   flushIntervalMs: config.sdk.flushIntervalMs,
@@ -62,21 +65,33 @@ function summarise(result) {
 }
 
 /** Queue one event from the mobile surface. Never throws at the caller. */
-export function trackMobile({ eventType, userRef, payload, userAttributes, action }) {
+export function trackMobile({ eventType, userRef, payload, userAttributes, action, occurredAt }) {
   try {
-    const wire = adaSdk.buildEvent({ eventType, userRef, payload, userAttributes });
+    const wire = adaSdk.buildEvent({ eventType, userRef, payload, userAttributes, occurredAt });
+    const captured = capturesToFile() ? captureEvent(wire) : null;
+
     const row = logWire({
       surface: "mobile",
-      transport: "sdk",
+      transport: capturesToFile() && !sendsToAda() ? "capture" : "sdk",
       action,
       eventType,
       userRef,
       clientEventId: wire.client_event_id,
       payload: wire.payload,
-      status: "QUEUED",
+      status: sendsToAda() ? "QUEUED" : captured?.captured ? "CAPTURED" : "FAILED",
+      ...(captured?.error ? { error: captured.error } : {}),
     });
+
+    // Capture-only: the file IS the destination, so the queue stays empty.
+    if (!sendsToAda()) {
+      return { queued: false, captured: Boolean(captured?.captured), clientEventId: wire.client_event_id, wireId: row.id };
+    }
+
     pending.set(wire.client_event_id, row.id);
-    adaSdk.track({ eventType, userRef, payload, userAttributes, clientEventId: wire.client_event_id });
+    adaSdk.track({
+      eventType, userRef, payload, userAttributes, occurredAt,
+      clientEventId: wire.client_event_id,
+    });
     return { queued: true, clientEventId: wire.client_event_id, wireId: row.id };
   } catch (err) {
     logWire({
@@ -93,6 +108,9 @@ export function trackMobile({ eventType, userRef, payload, userAttributes, actio
 }
 
 export function startSdk() {
+  // Nothing is ever queued in capture mode, so the flush timer would only
+  // wake up to find an empty queue.
+  if (!sendsToAda()) return adaSdk;
   adaSdk.start();
   return adaSdk;
 }

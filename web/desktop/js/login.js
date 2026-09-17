@@ -41,7 +41,7 @@ demoApi
           <span class="avatar" style="background:${esc(user.avatarColor)}">${esc(initials(user.name))}</span>
           <span>
             <strong>${esc(user.name)}</strong><br />
-            <span class="muted">${esc(user.username)} · ${esc(user.attributes.segment)}</span>
+            <span class="muted">${esc(user.username)} · ${esc(user.profile.segment)}</span>
           </span>
         </button>`
       )

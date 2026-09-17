@@ -306,6 +306,88 @@ It does **not** delete anything in ADA — events already accepted live there.
 | `npm run check:ada` | Preflight: API reachable, key valid, event accepted |
 | `npm run simulate -- --days 60` | Backfill deterministic history for all demo users |
 | `npm run simulate -- --days 60 --dry-run` | Print what would be sent, send nothing |
+| `npm run simulate:population` | Drive 120 simulated customers through the live surfaces (see below) |
+| `npm run make:labels` | Write the prior-cycle labeled examples ADA's IMPACT stage needs |
 
 `simulate` derives each `client_event_id` from the seed, so re-running it is
 idempotent at ADA's end (duplicates are detected, not double-counted).
+
+## Generating a dataset for ADA
+
+`npm run simulate` fabricates event objects and posts them. `simulate:population`
+does the opposite: it puts a whole synthetic customer base through the real
+surfaces — sign in, prepare, answer the token challenge, confirm — so every
+event is produced by the bank's own domain logic rather than by the script. It
+needs no ADA stack, because the server writes the events to a file instead of
+posting them.
+
+```bash
+# .env
+ADA_TRANSPORT_MODE=capture       # write events to a file, make no HTTP call
+ADA_CAPTURE_FILE=out/ada-events.jsonl
+DEMO_POPULATION_SIZE=120         # tops the handwritten 8 up to 120
+DEMO_ALLOW_BACKDATE=true         # lets the script stamp past timestamps
+DEMO_SHOW_TOKEN=true             # the script answers the e-Secure challenge
+
+npm run dev                                                  # terminal 1
+node scripts/simulate-population.js --users 120 --days 90     # terminal 2
+node scripts/make-labeled-examples.js
+```
+
+Roughly 24,000 events across 120 customers and 90 days, in about 15 seconds.
+Output:
+
+| File | What it is |
+| --- | --- |
+| `out/ada-events.json` | Every event, sorted, in ADA's raw-event shape |
+| `out/ada-labeled-examples.json` | A synthetic prior cycle, 240 treated + 240 control |
+
+Feed both to ADA's offline worker — no Postgres, no Docker:
+
+```bash
+cd ../ADA_project
+uv run python -m worker.main \
+  --tenant-slug demo-wallet \
+  --events  ../bank_demo/out/ada-events.json \
+  --labeled ../bank_demo/out/ada-labeled-examples.json
+```
+
+### Three things that are easy to get wrong
+
+**Timestamps.** Ninety days of history driven over live HTTP would carry ninety
+days of identical timestamps, and every window ADA measures — recency, 30/60/90
+day trends, neighbour activity now versus thirty days ago — would collapse.
+Each request sends `X-Demo-Occurred-At`, which the server honours only when
+`DEMO_ALLOW_BACKDATE` is on, and which moves the ADA event only: the ledger and
+the printed receipt still say "now".
+
+**Attribute names.** ADA's canonical event model whitelists exactly
+`{channel, region_code, cohort_key}` and drops everything else without warning.
+The demo users carry those keys, with `region_code` values that exist in
+`ADA_project/fixtures/churn_scorer_mapping.json`. What the UI displays lives in
+a separate `profile` field, so changing a label cannot quietly change pipeline
+input.
+
+**Labeled examples are not optional.** The IMPACT stage fits one model per arm
+and refuses to run below `IMPACT_MIN_TRAIN_ROWS` (200) rows in each, and no
+candidate exists without an impact score. Events alone give you churn risk and a
+transaction graph and then zero recommendations. `make-labeled-examples.js`
+measures `out/ada-events.json` and generates a prior cycle that matches that
+distribution — run the simulation first, or the two disagree and the segment
+split comes out meaningless.
+
+### What it plants
+
+The population is split across circles of eight, and two failure modes are
+planted so the graph stage has something to distinguish:
+
+- **`MARKET_DRIVEN`** — everyone in `cohort-3` goes quiet together. That is the
+  only cohort carrying a negative COHORT signal in ADA's canned feed (-0.62),
+  and the tag needs all three of a local dip, a cohort-wide median dip, and a
+  negative signal.
+- **`CIRCLE_SPECIFIC`** — half of two circles outside that cohort go quiet, so
+  their neighbours' activity drops while the wider cohort carries on.
+
+Both quiet windows are 34 days, deliberately longer than ADA's 30-day activity
+window: a customer who went quiet three weeks ago still counts as active inside
+it, and the dip would not register.

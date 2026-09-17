@@ -6,7 +6,17 @@
  * The `circle` field is what makes the transaction-circle feature light up:
  * transfers and split bills only fire between members of the same circle, so
  * ADA's graph stage sees repeated counterparty edges instead of noise.
+ *
+ * `attributes` keys are NOT free-form. ADA's canonical event model whitelists
+ * exactly {channel, region_code, cohort_key} (core_contracts/events.py:
+ * ALLOWED_ATTRIBUTE_KEYS) and normalize() silently drops everything else, so
+ * anything spelled differently never reaches the pipeline at all. The
+ * region_code values are keys of `region_by_code` in
+ * ADA_project/fixtures/churn_scorer_mapping.json - an unknown code falls back
+ * to the scorer's default region instead of carrying signal.
  */
+import { config } from "../config.js";
+import { makeRandom, helpers } from "../lib/random.js";
 
 export const USERS = [
   {
@@ -18,7 +28,8 @@ export const USERS = [
     cardLast4: "4417",
     balance: 18_450_000,
     savingsBalance: 62_300_000,
-    attributes: { region: "JAKARTA", cohort: "C3", segment: "YOUNG_PROFESSIONAL", tenure_months: "34" },
+    profile: { region: "JAKARTA", segment: "YOUNG_PROFESSIONAL", tenureMonths: "34" },
+    attributes: { region_code: "ID-JK", cohort_key: "cohort-3" },
     circle: "kost-sudirman",
     avatarColor: "#F26F21",
   },
@@ -31,7 +42,8 @@ export const USERS = [
     cardLast4: "9032",
     balance: 7_120_000,
     savingsBalance: 15_900_000,
-    attributes: { region: "JAKARTA", cohort: "C3", segment: "YOUNG_PROFESSIONAL", tenure_months: "18" },
+    profile: { region: "JAKARTA", segment: "YOUNG_PROFESSIONAL", tenureMonths: "18" },
+    attributes: { region_code: "ID-JK", cohort_key: "cohort-3" },
     circle: "kost-sudirman",
     avatarColor: "#00857D",
   },
@@ -44,7 +56,8 @@ export const USERS = [
     cardLast4: "2288",
     balance: 3_480_000,
     savingsBalance: 4_100_000,
-    attributes: { region: "BANDUNG", cohort: "C5", segment: "STUDENT", tenure_months: "9" },
+    profile: { region: "BANDUNG", segment: "STUDENT", tenureMonths: "9" },
+    attributes: { region_code: "ID-JB", cohort_key: "cohort-5" },
     circle: "kost-sudirman",
     avatarColor: "#7A3FF2",
   },
@@ -57,7 +70,8 @@ export const USERS = [
     cardLast4: "5510",
     balance: 26_900_000,
     savingsBalance: 88_000_000,
-    attributes: { region: "SURABAYA", cohort: "C1", segment: "AFFLUENT", tenure_months: "61" },
+    profile: { region: "SURABAYA", segment: "AFFLUENT", tenureMonths: "61" },
+    attributes: { region_code: "ID-JI", cohort_key: "cohort-1" },
     circle: "kantor-thamrin",
     avatarColor: "#1F6FEB",
   },
@@ -70,7 +84,8 @@ export const USERS = [
     cardLast4: "7741",
     balance: 11_050_000,
     savingsBalance: 23_400_000,
-    attributes: { region: "JAKARTA", cohort: "C2", segment: "MASS_AFFLUENT", tenure_months: "42" },
+    profile: { region: "JAKARTA", segment: "MASS_AFFLUENT", tenureMonths: "42" },
+    attributes: { region_code: "ID-JK", cohort_key: "cohort-2" },
     circle: "kantor-thamrin",
     avatarColor: "#E0245E",
   },
@@ -83,7 +98,8 @@ export const USERS = [
     cardLast4: "6603",
     balance: 2_310_000,
     savingsBalance: 1_250_000,
-    attributes: { region: "MEDAN", cohort: "C6", segment: "MASS", tenure_months: "6" },
+    profile: { region: "MEDAN", segment: "MASS", tenureMonths: "6" },
+    attributes: { region_code: "ID-SU", cohort_key: "cohort-6" },
     circle: "kantor-thamrin",
     avatarColor: "#0F9D58",
   },
@@ -96,7 +112,8 @@ export const USERS = [
     cardLast4: "3390",
     balance: 9_770_000,
     savingsBalance: 12_050_000,
-    attributes: { region: "BANDUNG", cohort: "C5", segment: "MASS_AFFLUENT", tenure_months: "27" },
+    profile: { region: "BANDUNG", segment: "MASS_AFFLUENT", tenureMonths: "27" },
+    attributes: { region_code: "ID-JB", cohort_key: "cohort-5" },
     circle: "arisan-bandung",
     avatarColor: "#B8860B",
   },
@@ -109,7 +126,8 @@ export const USERS = [
     cardLast4: "1174",
     balance: 5_640_000,
     savingsBalance: 7_800_000,
-    attributes: { region: "BANDUNG", cohort: "C5", segment: "MASS", tenure_months: "15" },
+    profile: { region: "BANDUNG", segment: "MASS", tenureMonths: "15" },
+    attributes: { region_code: "ID-JB", cohort_key: "cohort-5" },
     circle: "arisan-bandung",
     avatarColor: "#3D5AFE",
   },
@@ -131,6 +149,107 @@ export const MERCHANTS = [
   { ref: "merchant-grab", name: "Grab", category: "Transport", typicalAmount: 34_000 },
 ];
 
+// -- generated population ------------------------------------------------
+
+/** Region codes ADA's churn scorer understands, with the cohort that goes
+ *  with each. Cohort is what external signals resolve against at COHORT
+ *  scope, so it has to vary alongside region rather than track it exactly. */
+const REGIONS = ["ID-JK", "ID-JB", "ID-JI", "ID-SU", "ID-SN"];
+const COHORTS = ["cohort-1", "cohort-2", "cohort-3", "cohort-4", "cohort-5", "cohort-6"];
+
+/** Display-only labels for the region codes above. `profile` is what the two
+ *  front ends render; `attributes` is what goes on the wire to ADA. Keeping
+ *  them apart is what stops a UI tweak from silently changing pipeline input. */
+const REGION_LABELS = {
+  "ID-JK": "JAKARTA", "ID-JB": "BANDUNG", "ID-JI": "SURABAYA",
+  "ID-SU": "MEDAN", "ID-SN": "MAKASSAR",
+};
+const SEGMENTS = ["STUDENT", "MASS", "YOUNG_PROFESSIONAL", "MASS_AFFLUENT", "AFFLUENT"];
+
+const FIRST_NAMES = [
+  "Adi", "Ayu", "Bagus", "Bunga", "Cahya", "Dewi", "Eko", "Fitri", "Galih", "Hana",
+  "Indra", "Intan", "Joko", "Kartika", "Lukman", "Maya", "Nanda", "Nur", "Oka", "Putri",
+  "Rizky", "Rina", "Satrio", "Sari", "Teguh", "Tiara", "Umar", "Vina", "Wahyu", "Yuni",
+  "Zahra", "Arif", "Bayu", "Citra", "Dian", "Elang", "Farah", "Gilang", "Hesti", "Ilham",
+];
+const LAST_NAMES = [
+  "Wijaya", "Santoso", "Halim", "Kusuma", "Permata", "Siregar", "Hutapea", "Nasution",
+  "Putra", "Utami", "Hakim", "Lestari", "Firmansyah", "Rahayu", "Simanjuntak", "Gunawan",
+  "Prasetyo", "Anggraini", "Setiawan", "Handayani",
+];
+
+/** Circle names for the generated cohort. Kept separate from the three
+ *  handwritten ones so the stage demo's circles stay exactly as rehearsed. */
+const CIRCLE_NAMES = [
+  "kos-depok", "kantor-sudirman", "arisan-bekasi", "warung-tebet", "gym-kemang",
+  "kampus-salemba", "kantor-scbd", "kos-margonda", "arisan-cibubur", "komunitas-bintaro",
+  "kantor-gatsu", "kos-jatinangor", "arisan-surabaya", "kantor-medan", "komunitas-makassar",
+];
+
+const CIRCLE_SIZE = 8;
+
+const AVATAR_PALETTE = ["#F26F21", "#00857D", "#7A3FF2", "#1F6FEB", "#E0245E", "#0F9D58", "#B8860B", "#3D5AFE"];
+
+/** Deterministic filler customers, appended to the handwritten eight.
+ *
+ * Circle membership is the point: ADA only sees a transaction circle after
+ * PIPELINE_MIN_EDGE_INTERACTIONS repeated edges between the same pair, and
+ * only counts one at PIPELINE_CIRCLE_MIN_SIZE members or more. Circles of
+ * eight give the simulation room to build those edges.
+ */
+export function generateUsers(count, seedText) {
+  if (count <= 0) return [];
+  const { random, pick, between, roundTo } = helpers(makeRandom(seedText));
+  const generated = [];
+  const taken = new Set(USERS.map((u) => u.username));
+
+  for (let i = 0; i < count; i += 1) {
+    const seq = USERS.length + generated.length + 1;
+    const circleIndex = Math.floor(i / CIRCLE_SIZE) % CIRCLE_NAMES.length;
+
+    const name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+    let username = name.toLowerCase().replace(/[^a-z]/g, "");
+    if (taken.has(username)) username = `${username}${seq}`;
+    taken.add(username);
+
+    // A circle shares a region and mostly a cohort: neighbours in a real
+    // transaction circle live and earn alike, which is what makes a
+    // circle-wide dip distinguishable from a market-wide one.
+    const regionCode = REGIONS[circleIndex % REGIONS.length];
+    const cohortKey = random() < 0.8
+      ? COHORTS[circleIndex % COHORTS.length]
+      : pick(COHORTS);
+
+    const balance = roundTo(between(1_500_000, 30_000_000), 10_000);
+
+    generated.push({
+      ref: `bd-user-${String(seq).padStart(3, "0")}`,
+      name,
+      username,
+      pin: "123456",
+      accountNumber: `088${String(1_000_000 + seq).slice(1)}`,
+      cardLast4: String(between(1000, 9999)),
+      balance,
+      savingsBalance: roundTo(balance * (1 + random() * 3), 10_000),
+      profile: {
+        region: REGION_LABELS[regionCode],
+        // Wealth band follows the balance, so the label matches what the
+        // account actually holds.
+        segment: SEGMENTS[Math.min(SEGMENTS.length - 1, Math.floor(balance / 6_000_000))],
+        tenureMonths: String(between(2, 72)),
+      },
+      attributes: { region_code: regionCode, cohort_key: cohortKey },
+      circle: CIRCLE_NAMES[circleIndex],
+      avatarColor: AVATAR_PALETTE[seq % AVATAR_PALETTE.length],
+    });
+  }
+  return generated;
+}
+
+// Top the roster up to DEMO_POPULATION_SIZE. Default 8 keeps the stage demo
+// exactly as it was; the simulation sets it to 120.
+USERS.push(...generateUsers(config.population.size - USERS.length, config.population.seed));
+
 const byRef = new Map(USERS.map((u) => [u.ref, u]));
 const byUsername = new Map(USERS.map((u) => [u.username, u]));
 
@@ -142,7 +261,6 @@ export const getUserByUsername = (username) => byUsername.get(String(username ??
 /** Circles a newly registered user can join, round-robin, so they land in a
  *  graph with real counterparties from their first login instead of alone. */
 const CIRCLES = [...new Set(USERS.map((u) => u.circle))];
-const AVATAR_PALETTE = ["#F26F21", "#00857D", "#7A3FF2", "#1F6FEB", "#E0245E", "#0F9D58", "#B8860B", "#3D5AFE"];
 let registeredCount = 0;
 
 const USERNAME_RULE = /^[a-z][a-z0-9_]{2,19}$/;
@@ -190,7 +308,8 @@ export function registerUser({ name, username, pin }) {
     cardLast4: String(1000 + Math.floor(Math.random() * 9000)),
     balance: 500_000,
     savingsBalance: 0,
-    attributes: { region: "JAKARTA", cohort: "C4", segment: "NEW_CUSTOMER", tenure_months: "0" },
+    profile: { region: "JAKARTA", segment: "NEW_CUSTOMER", tenureMonths: "0" },
+    attributes: { region_code: "ID-JK", cohort_key: "cohort-4" },
     circle,
     avatarColor: AVATAR_PALETTE[seq % AVATAR_PALETTE.length],
   };
