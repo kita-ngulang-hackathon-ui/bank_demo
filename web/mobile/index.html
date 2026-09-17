@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>wndr — mobile banking demo</title>
+    <link rel="icon" href="/shared/assets/app-logo.svg" />
+    <link rel="stylesheet" href="/shared/css/tokens.css" />
+    <link rel="stylesheet" href="/wondr/css/app.css" />
+  </head>
+  <body>
+    <div class="phone">
+      <div class="status-bar"><span id="clock">09:41</span><span>demo · synthetic data</span></div>
+
+      <!-- ------------------------------------------------------------ login -->
+      <div class="scroll tab-page is-active" id="page-login" style="display:flex">
+        <div class="login-card">
+          <img src="/shared/assets/app-logo.svg" alt="wndr placeholder wordmark" />
+          <h2 style="margin:0 0 6px">Masuk</h2>
+          <p style="color:var(--app-muted);font-size:13px;margin:0 0 20px">
+            Pilih nasabah demo untuk membuka aplikasi.
+          </p>
+          <div id="loginUsers"></div>
+          <div class="sdk-note">
+            Surface ini memakai <b>ADA SDK</b>: event masuk antrean lalu dikirim
+            batch ke <code>/v1/events:batch</code>.
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------- home -->
+      <div class="scroll tab-page" id="page-home">
+        <div class="app-head">
+          <img src="/shared/assets/app-logo.svg" alt="wndr" />
+          <div class="app-head__spacer"></div>
+          <button class="icon-btn" id="offersButton" title="Penawaran">★<span class="dot"></span></button>
+          <button class="icon-btn" id="logoutButton" title="Keluar">⏻</button>
+        </div>
+
+        <div class="greeting">
+          <small id="greetLabel">Selamat datang,</small>
+          <h1 id="greetName">—</h1>
+        </div>
+
+        <div class="balance">
+          <div class="balance__label">Saldo utama</div>
+          <div class="balance__amount" id="balanceMain">Rp 0</div>
+          <div class="balance__account" id="balanceAccount">—</div>
+          <div class="balance__pockets">
+            <div class="pocket"><small>Tabungan</small><b id="balanceSavings">Rp 0</b></div>
+            <div class="pocket"><small>Circle</small><b id="circleName">—</b></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="action" data-sheet="transfer"><span class="action__icon">⇄</span>Transfer</button>
+          <button class="action" data-sheet="split"><span class="action__icon">👥</span>Split Bill</button>
+          <button class="action" data-sheet="topup"><span class="action__icon">＋</span>Top Up</button>
+          <button class="action" data-sheet="qr"><span class="action__icon">▢</span>QRIS</button>
+          <button class="action" data-sheet="bill"><span class="action__icon">🧾</span>Tagihan</button>
+          <button class="action" data-sheet="withdraw"><span class="action__icon">🏧</span>Tarik</button>
+          <button class="action" data-sheet="splits"><span class="action__icon">♺</span>Bayar Share</button>
+          <button class="action" data-sheet="lainnya"><span class="action__icon">⋯</span>Lainnya</button>
+        </div>
+
+        <div class="section-title">Penawaran untukmu <span id="offerCount"></span></div>
+        <div class="offer-rail" id="offerRail"></div>
+
+        <div class="section-title">Aktivitas terakhir <span id="activityHint"></span></div>
+        <div class="list" id="activityList"></div>
+      </div>
+
+      <!-- --------------------------------------------------------- activity -->
+      <div class="scroll tab-page" id="page-activity">
+        <div class="app-head"><img src="/shared/assets/app-logo.svg" alt="wndr" /></div>
+        <div class="section-title">Semua aktivitas <span id="activityFullHint"></span></div>
+        <div class="activity-filters">
+          <select id="actDirection">
+            <option value="all">Semua jenis</option>
+            <option value="debit">Debet</option>
+            <option value="credit">Kredit</option>
+          </select>
+          <input id="actQuery" placeholder="Cari nama / catatan" />
+        </div>
+        <div class="list" id="fullActivityList"></div>
+      </div>
+
+      <!-- ----------------------------------------------------------- circle -->
+      <div class="scroll tab-page" id="page-circle">
+        <div class="app-head"><img src="/shared/assets/app-logo.svg" alt="wndr" /></div>
+        <div class="section-title">Circle transaksi <span>counterparty graph</span></div>
+        <div class="list" id="circleList"></div>
+        <div class="section-title">Split bill</div>
+        <div class="list" id="splitBoard"></div>
+      </div>
+
+      <!-- ---------------------------------------------------------- profile -->
+      <div class="scroll tab-page" id="page-profile">
+        <div class="app-head"><img src="/shared/assets/app-logo.svg" alt="wndr" /></div>
+        <div class="section-title">Profil</div>
+        <div class="list" id="profileList"></div>
+
+        <div class="section-title">Keamanan</div>
+        <div class="list">
+          <button class="list-item" style="width:100%;text-align:left;border:1px solid var(--app-line);background:var(--app-surface)" data-sheet="pin">
+            <div class="list-item__icon">🔒</div>
+            <div class="list-item__body"><b>Ubah PIN</b><small>PIN transaksi 6 digit</small></div>
+            <div class="list-item__amount amt-info">›</div>
+          </button>
+          <button class="list-item" style="width:100%;text-align:left;border:1px solid var(--app-line);background:var(--app-surface)" data-sheet="favourites">
+            <div class="list-item__icon">★</div>
+            <div class="list-item__body"><b>Rekening Favorit</b><small>Penerima transfer tersimpan</small></div>
+            <div class="list-item__amount amt-info">›</div>
+          </button>
+          <button class="list-item" style="width:100%;text-align:left;border:1px solid var(--app-line);background:var(--app-surface)" data-sheet="schedules">
+            <div class="list-item__icon">⏱</div>
+            <div class="list-item__body"><b>Transfer Terjadwal</b><small>Instruksi berulang</small></div>
+            <div class="list-item__amount amt-info">›</div>
+          </button>
+        </div>
+
+        <div class="section-title">Aktivitas login</div>
+        <div class="list" id="loginActivityList"></div>
+
+        <div class="section-title">Event ke ADA (SDK queue)</div>
+        <div class="list" id="wireList"></div>
+      </div>
+
+      <!-- ------------------------------------------------------------ nav --->
+      <nav class="bottom-nav" id="bottomNav" hidden>
+        <button class="nav-item is-active" data-tab="home"><span>⌂</span>Home</button>
+        <button class="nav-item" data-tab="activity"><span>≡</span>Aktivitas</button>
+        <button class="nav-qr" data-sheet="qr">▣</button>
+        <button class="nav-item" data-tab="circle"><span>◎</span>Circle</button>
+        <button class="nav-item" data-tab="profile"><span>☺</span>Profil</button>
+      </nav>
+
+      <div class="sheet-backdrop" id="sheetBackdrop"></div>
+      <div class="sheet" id="sheet">
+        <div class="sheet__grab"></div>
+        <div id="sheetContent"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/wondr/js/app.js"></script>
+  </body>
+</html>
