@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Internet Banking — Beranda</title>
+    <link rel="icon" href="/shared/assets/logo-mark.svg" />
+    <link rel="stylesheet" href="/shared/css/tokens.css" />
+    <link rel="stylesheet" href="/css/portal.css" />
+    <link rel="stylesheet" href="/css/modules.css" />
+  </head>
+  <body>
+    <div class="demo-banner" id="demoBanner">
+      Demo environment — every action below is sent to the ADA ingest API as a real event
+    </div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="topbar__logo" href="/app.html">
+          <img src="/shared/assets/logo.svg" alt="placeholder logo" />
+        </a>
+        <div class="topbar__title">
+          <strong>Internet Banking</strong>
+          <span>Personal</span>
+        </div>
+        <div class="topbar__spacer"></div>
+        <div class="session-timer" id="sessionTimer" title="Sesi berakhir otomatis jika tidak ada aktivitas">
+          Sisa sesi <b id="sessionRemaining">15:00</b>
+        </div>
+        <div class="topbar__meta">
+          <b id="userName">—</b>
+          <div id="userMeta">—</div>
+        </div>
+        <button class="btn-logout" id="logoutButton">Keluar</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="rail">
+        <div class="rail__head">Menu Utama</div>
+
+        <div class="rail__group">Rekening</div>
+        <button class="rail__item is-active" data-view="home"><span class="rail__icon">▦</span> Beranda</button>
+        <button class="rail__item rail__item--sub" data-view="balance"><span class="rail__icon">₨</span> Informasi Saldo</button>
+        <button class="rail__item rail__item--sub" data-view="statement"><span class="rail__icon">≡</span> Mutasi Rekening</button>
+
+        <div class="rail__group">Transfer</div>
+        <button class="rail__item rail__item--sub" data-view="tf-internal"><span class="rail__icon">⇄</span> Antar Rekening</button>
+        <button class="rail__item rail__item--sub" data-view="tf-interbank"><span class="rail__icon">⇉</span> Antar Bank</button>
+        <button class="rail__item rail__item--sub" data-view="favourites"><span class="rail__icon">★</span> Rekening Favorit</button>
+        <button class="rail__item rail__item--sub" data-view="schedules"><span class="rail__icon">⏱</span> Transfer Terjadwal</button>
+        <button class="rail__item rail__item--sub" data-view="split"><span class="rail__icon">👥</span> Split Bill</button>
+
+        <div class="rail__group">Pembayaran &amp; Pembelian</div>
+        <button class="rail__item rail__item--sub" data-view="bill"><span class="rail__icon">🧾</span> Tagihan</button>
+        <button class="rail__item rail__item--sub" data-view="pulsa"><span class="rail__icon">📱</span> Pulsa &amp; Data</button>
+        <button class="rail__item rail__item--sub" data-view="token"><span class="rail__icon">⚡</span> Token Listrik</button>
+        <button class="rail__item rail__item--sub" data-view="ewallet"><span class="rail__icon">👛</span> Top Up e-Wallet</button>
+
+        <div class="rail__group">Lainnya</div>
+        <button class="rail__item rail__item--sub" data-view="cash"><span class="rail__icon">＋</span> Top Up &amp; Tarik Tunai</button>
+        <button class="rail__item rail__item--sub" data-view="offers">
+          <span class="rail__icon">🎁</span> Penawaran <span class="rail__badge" id="offerBadge" hidden></span>
+        </button>
+        <button class="rail__item rail__item--sub" data-view="admin"><span class="rail__icon">⚙</span> Administrasi</button>
+
+        <div class="rail__foot">
+          Integrasi: <b>direct API</b><br />
+          POST /v1/events per aksi<br />
+          <a href="/wondr/" style="color: #ffd9c2">Buka aplikasi wndr →</a>
+        </div>
+      </nav>
+
+      <main>
+        <!-- ---------------------------------------------------------- home -->
+        <section class="view is-active" id="view-home">
+          <h1 class="page-title">Beranda <span>Ringkasan rekening dan aktivitas terbaru</span></h1>
+
+          <div class="card">
+            <div class="card__head"><h2>Rekening Saya</h2><span class="hint" id="accountHint"></span></div>
+            <div class="card__body"><div class="acct" id="accountCards"></div></div>
+          </div>
+
+          <div class="card" id="homeOffersCard" hidden>
+            <div class="card__head"><h2>Penawaran untuk Anda</h2><span class="hint">Direkomendasikan oleh ADA</span></div>
+            <div class="card__body" id="homeOffers"></div>
+          </div>
+
+          <div class="card">
+            <div class="card__head"><h2>Transaksi Terakhir</h2><span class="hint" id="homeTxHint"></span></div>
+            <table class="data" id="homeTx"></table>
+          </div>
+
+          <div class="card">
+            <div class="card__head">
+              <h2>Event Terkirim ke ADA</h2>
+              <span class="hint">transport: direct API call (POST /v1/events)</span>
+            </div>
+            <div class="wire" id="wireFeed"></div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------- balance -->
+        <section class="view" id="view-balance">
+          <h1 class="page-title">Informasi Saldo <span>Posisi dana per hari ini</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Rekening &amp; Saldo</h2><span class="hint" id="balanceHint"></span></div>
+            <table class="data" id="balanceTable"></table>
+          </div>
+          <div class="card">
+            <div class="card__head"><h2>Informasi Kartu</h2></div>
+            <div class="card__body" id="cardInfo"></div>
+          </div>
+        </section>
+
+        <!-- ----------------------------------------------------- statement -->
+        <section class="view" id="view-statement">
+          <h1 class="page-title">Mutasi Rekening <span>Saring berdasarkan periode dan jenis transaksi</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Filter</h2><span class="hint" id="statementCount"></span></div>
+            <form class="filters" id="statementFilters">
+              <div class="field"><label for="stFrom">Dari tanggal</label><input id="stFrom" type="date" /></div>
+              <div class="field"><label for="stTo">Sampai tanggal</label><input id="stTo" type="date" /></div>
+              <div class="field">
+                <label for="stDirection">Jenis</label>
+                <select id="stDirection">
+                  <option value="all">Semua</option>
+                  <option value="debit">Debet</option>
+                  <option value="credit">Kredit</option>
+                </select>
+              </div>
+              <div class="field"><label for="stQuery">Cari</label><input id="stQuery" placeholder="Nama / berita / no. referensi" /></div>
+              <div style="display: flex; gap: 8px">
+                <button class="btn btn--primary btn--sm" type="submit">Tampilkan</button>
+                <button class="btn btn--ghost btn--sm" type="button" id="stDownload">Unduh CSV</button>
+              </div>
+            </form>
+            <div class="summary-strip" id="statementSummary"></div>
+            <table class="data" id="statementTable"></table>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------- transfer internal -->
+        <section class="view" id="view-tf-internal">
+          <h1 class="page-title">Transfer Antar Rekening <span>Sesama ${BANK}</span></h1>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card__head"><h2>Data Transfer</h2></div>
+              <div class="card__body">
+                <form id="transferForm">
+                  <div class="field">
+                    <label for="transferRecipient">Rekening Tujuan</label>
+                    <select id="transferRecipient" required></select>
+                    <div class="help">Daftar penerima berisi circle transaksi dan rekening favorit Anda.</div>
+                  </div>
+                  <div class="field--inline">
+                    <div class="field">
+                      <label for="transferAmount">Nominal (IDR)</label>
+                      <input id="transferAmount" inputmode="numeric" placeholder="250.000" required />
+                    </div>
+                    <div class="field">
+                      <label for="transferNote">Berita</label>
+                      <input id="transferNote" maxlength="40" placeholder="Bayar makan siang" />
+                    </div>
+                  </div>
+                  <div class="chip-row" id="transferChips"></div>
+                  <label style="display: flex; gap: 8px; font-size: 12.5px; color: var(--ink-700); margin-top: 14px">
+                    <input type="checkbox" id="transferSaveFav" style="width: auto" /> Simpan sebagai rekening favorit
+                  </label>
+                  <button class="btn btn--primary" type="submit" style="margin-top: 16px">Lanjut</button>
+                </form>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card__head"><h2>Rekening Favorit</h2></div>
+              <div class="row-list" id="favouriteQuickList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- -------------------------------------------- transfer interbank -->
+        <section class="view" id="view-tf-interbank">
+          <h1 class="page-title">Transfer Antar Bank <span>BI-FAST, Kliring (SKN), dan RTGS</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Data Transfer</h2><span class="hint" id="networkHint"></span></div>
+            <div class="card__body">
+              <form id="interbankForm">
+                <div class="field--inline">
+                  <div class="field">
+                    <label for="ibBank">Bank Tujuan</label>
+                    <select id="ibBank" required></select>
+                  </div>
+                  <div class="field">
+                    <label for="ibAccount">Nomor Rekening</label>
+                    <input id="ibAccount" inputmode="numeric" placeholder="1234567890" required />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="ibName">Nama Penerima</label>
+                  <input id="ibName" placeholder="Nama sesuai rekening" required />
+                </div>
+                <div class="field">
+                  <label for="ibNetwork">Jenis Transfer</label>
+                  <select id="ibNetwork" required></select>
+                </div>
+                <div class="field--inline">
+                  <div class="field">
+                    <label for="ibAmount">Nominal (IDR)</label>
+                    <input id="ibAmount" inputmode="numeric" placeholder="1.500.000" required />
+                  </div>
+                  <div class="field">
+                    <label for="ibNote">Berita</label>
+                    <input id="ibNote" maxlength="40" placeholder="Pembayaran invoice" />
+                  </div>
+                </div>
+                <div class="notice notice--info" id="ibFeeNotice"></div>
+                <button class="btn btn--primary" type="submit">Lanjut</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- favourites -->
+        <section class="view" id="view-favourites">
+          <h1 class="page-title">Rekening Favorit <span>Daftar penerima tersimpan</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Tambah Rekening Favorit</h2></div>
+            <div class="card__body">
+              <form id="favouriteForm">
+                <div class="field--inline">
+                  <div class="field">
+                    <label for="favUser">Nasabah ${BANK}</label>
+                    <select id="favUser"></select>
+                  </div>
+                  <div class="field">
+                    <label for="favAlias">Nama Alias</label>
+                    <input id="favAlias" placeholder="Bella - kost" />
+                  </div>
+                </div>
+                <button class="btn btn--primary" type="submit">Simpan</button>
+              </form>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__head"><h2>Daftar Favorit</h2></div>
+            <div class="row-list" id="favouriteList"></div>
+          </div>
+        </section>
+
+        <!-- ----------------------------------------------------- schedules -->
+        <section class="view" id="view-schedules">
+          <h1 class="page-title">Transfer Terjadwal <span>Instruksi berulang ke sesama nasabah</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Buat Jadwal</h2></div>
+            <div class="card__body">
+              <form id="scheduleForm">
+                <div class="field--inline">
+                  <div class="field">
+                    <label for="schRecipient">Penerima</label>
+                    <select id="schRecipient" required></select>
+                  </div>
+                  <div class="field">
+                    <label for="schAmount">Nominal (IDR)</label>
+                    <input id="schAmount" inputmode="numeric" placeholder="500.000" required />
+                  </div>
+                </div>
+                <div class="field--inline">
+                  <div class="field">
+                    <label for="schFrequency">Frekuensi</label>
+                    <select id="schFrequency" required></select>
+                  </div>
+                  <div class="field">
+                    <label for="schStart">Mulai</label>
+                    <input id="schStart" type="date" required />
+                  </div>
+                </div>
+                <div class="field"><label for="schNote">Berita</label><input id="schNote" maxlength="40" placeholder="Uang kos" /></div>
+                <button class="btn btn--primary" type="submit">Simpan Jadwal</button>
+              </form>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__head">
+              <h2>Jadwal Aktif</h2>
+              <span class="hint">"Jalankan sekarang" mengirim event yang sama dengan transfer manual</span>
+            </div>
+            <div class="row-list" id="scheduleList"></div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------------- split -->
+        <section class="view" id="view-split">
+          <h1 class="page-title">Split Bill <span>Bagi tagihan dengan circle Anda</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Buat Split Bill</h2></div>
+            <div class="card__body">
+              <form id="splitForm">
+                <div class="field--inline">
+                  <div class="field"><label for="splitTitle">Judul</label><input id="splitTitle" placeholder="Makan malam tim" required /></div>
+                  <div class="field"><label for="splitTotal">Total Tagihan (IDR)</label><input id="splitTotal" inputmode="numeric" placeholder="450.000" required /></div>
+                </div>
+                <div class="field">
+                  <label>Bagi dengan</label>
+                  <div class="chip-row" id="splitParticipants"></div>
+                  <div class="help">Satu event <code>wallet.split.created</code> dikirim per peserta.</div>
+                </div>
+                <button class="btn btn--primary" type="submit">Lanjut</button>
+              </form>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__head"><h2>Split Bill Aktif</h2></div>
+            <div class="card__body" id="splitList"></div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------------- bill -->
+        <section class="view" id="view-bill">
+          <h1 class="page-title">Pembayaran Tagihan <span>Tagihan rutin dan autodebet</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Bayar Tagihan</h2></div>
+            <div class="card__body">
+              <form id="billForm">
+                <div class="field"><label for="billPayee">Penyedia</label><select id="billPayee" required></select></div>
+                <div class="field"><label for="billAmount">Nominal (IDR)</label><input id="billAmount" inputmode="numeric" required /></div>
+                <button class="btn btn--primary" type="submit">Lanjut</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------------- pulsa -->
+        <section class="view" id="view-pulsa">
+          <h1 class="page-title">Pulsa &amp; Paket Data <span>Isi ulang prabayar</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Pembelian Pulsa</h2></div>
+            <div class="card__body">
+              <form id="pulsaForm">
+                <div class="field--inline">
+                  <div class="field"><label for="pulsaProvider">Provider</label><select id="pulsaProvider" required></select></div>
+                  <div class="field"><label for="pulsaMsisdn">Nomor Handphone</label><input id="pulsaMsisdn" inputmode="numeric" placeholder="08123456789" required /></div>
+                </div>
+                <div class="field"><label>Nominal</label><div class="denoms" id="pulsaDenoms"></div></div>
+                <button class="btn btn--primary" type="submit">Lanjut</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------------- token -->
+        <section class="view" id="view-token">
+          <h1 class="page-title">Token Listrik <span>PLN Prabayar</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Pembelian Token</h2></div>
+            <div class="card__body">
+              <form id="tokenForm">
+                <div class="field">
+                  <label for="tokenMeter">ID Pelanggan / Nomor Meter</label>
+                  <input id="tokenMeter" inputmode="numeric" placeholder="14 digit" value="14021234567890" required />
+                </div>
+                <div class="field"><label>Nominal</label><div class="denoms" id="tokenDenoms"></div></div>
+                <button class="btn btn--primary" type="submit">Lanjut</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------- ewallet -->
+        <section class="view" id="view-ewallet">
+          <h1 class="page-title">Top Up e-Wallet <span>Isi saldo dompet digital dari rekening</span></h1>
+          <div class="card">
+            <div class="card__head"><h2>Top Up</h2></div>
+            <div class="card__body">
+              <form id="ewalletForm">
+                <div class="field--inline">
+                  <div class="field"><label for="ewWallet">e-Wallet</label><select id="ewWallet" required></select></div>
+                  <div class="field"><label for="ewPhone">Nomor Terdaftar</label><input id="ewPhone" inputmode="numeric" placeholder="08123456789" /></div>
+                </div>
+                <div class="field"><label for="ewAmount">Nominal (IDR)</label><input id="ewAmount" inputmode="numeric" placeholder="100.000" required /></div>
+                <div class="chip-row" id="ewChips"></div>
+                <button class="btn btn--primary" type="submit" style="margin-top: 16px">Lanjut</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------------- cash -->
+        <section class="view" id="view-cash">
+          <h1 class="page-title">Top Up &amp; Tarik Tunai <span>Pindahkan dana antar kantong</span></h1>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card__head"><h2>Top Up Saldo</h2></div>
+              <div class="card__body">
+                <form id="topupForm">
+                  <div class="field">
+                    <label for="topupAmount">Nominal (IDR)</label>
+                    <input id="topupAmount" inputmode="numeric" placeholder="500.000" required />
+                    <div class="help">Dana diambil dari rekening tabungan Anda.</div>
+                  </div>
+                  <div class="chip-row" id="topupChips"></div>
+                  <button class="btn btn--primary" type="submit" style="margin-top: 16px">Lanjut</button>
+                </form>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card__head"><h2>Tarik Tunai Tanpa Kartu</h2></div>
+              <div class="card__body">
+                <form id="withdrawForm">
+                  <div class="field">
+                    <label for="withdrawAmount">Nominal (IDR)</label>
+                    <input id="withdrawAmount" inputmode="numeric" placeholder="500.000" required />
+                    <div class="help">Minimum Rp 50.000. Kode berlaku 30 menit.</div>
+                  </div>
+                  <button class="btn btn--ghost" type="submit">Buat Kode Tarik Tunai</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- -------------------------------------------------------- offers -->
+        <section class="view" id="view-offers">
+          <h1 class="page-title">
+            Penawaran <span>Rekomendasi yang sudah disetujui reviewer di ADA Console</span>
+          </h1>
+          <div class="card">
+            <div class="card__head">
+              <h2>Kotak Penawaran</h2>
+              <span class="hint">GET /v1/recommendations?status=APPROVED</span>
+            </div>
+            <div class="card__body" id="offersList"></div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------------- admin -->
+        <section class="view" id="view-admin">
+          <h1 class="page-title">Administrasi <span>Keamanan akun dan aktivitas</span></h1>
+          <div class="card">
+            <div class="tabs">
+              <button class="tab is-active" data-tab="pin">Ubah PIN</button>
+              <button class="tab" data-tab="activity">Aktivitas Login</button>
+              <button class="tab" data-tab="wire">Log Event ADA</button>
+            </div>
+            <div class="card__body">
+              <div class="tab-body is-active" id="tab-pin">
+                <div class="notice">
+                  PIN demo awal adalah <b>123456</b>. Perubahan hanya berlaku selama server berjalan.
+                </div>
+                <form id="pinForm" style="max-width: 420px">
+                  <div class="field"><label for="pinCurrent">PIN Saat Ini</label><input id="pinCurrent" type="password" maxlength="6" inputmode="numeric" required /></div>
+                  <div class="field"><label for="pinNew">PIN Baru</label><input id="pinNew" type="password" maxlength="6" inputmode="numeric" required /></div>
+                  <div class="field"><label for="pinConfirm">Konfirmasi PIN Baru</label><input id="pinConfirm" type="password" maxlength="6" inputmode="numeric" required /></div>
+                  <button class="btn btn--primary" type="submit">Simpan PIN</button>
+                </form>
+              </div>
+              <div class="tab-body" id="tab-activity"><table class="data" id="activityTable"></table></div>
+              <div class="tab-body" id="tab-wire"><div class="wire" id="wireFeedFull"></div></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- --------------------------------------------------------- modals --- -->
+    <div class="modal-backdrop" id="confirmModal">
+      <div class="modal">
+        <div class="modal__head">
+          <h2 id="confirmTitle">Konfirmasi Transaksi</h2>
+          <button class="modal__close" data-close="confirmModal">&times;</button>
+        </div>
+        <div class="modal__body">
+          <div class="confirm-list" id="confirmList"></div>
+          <div class="token-device" id="tokenDevice">
+            <div>
+              <div class="token-device__screen" id="tokenCode">••••••</div>
+            </div>
+            <div class="token-device__meta">
+              <b>e-Secure Token (simulasi)</b><br />
+              Angka tantangan: <b id="challengeNumber">—</b><br />
+              Masukkan respons 6 digit untuk menyetujui transaksi.
+            </div>
+          </div>
+          <div class="field">
+            <label for="tokenInput">Kode Respons Token</label>
+            <input id="tokenInput" class="token-input" inputmode="numeric" maxlength="6" placeholder="······" />
+          </div>
+          <div class="token-countdown" id="tokenCountdown">Berlaku 02:00</div>
+        </div>
+        <div class="modal__foot">
+          <button class="btn btn--ghost" data-close="confirmModal">Batal</button>
+          <button class="btn btn--primary" id="confirmSubmit">Setujui Transaksi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="receiptModal">
+      <div class="modal">
+        <div class="modal__head">
+          <h2>Bukti Transaksi</h2>
+          <button class="modal__close" data-close="receiptModal">&times;</button>
+        </div>
+        <div class="modal__body" id="receiptBody"></div>
+        <div class="modal__foot">
+          <button class="btn btn--ghost" id="printReceipt">Cetak</button>
+          <button class="btn btn--primary" data-close="receiptModal">Selesai</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="sessionModal">
+      <div class="modal" style="max-width: 420px">
+        <div class="modal__head"><h2>Sesi Akan Berakhir</h2></div>
+        <div class="modal__body">
+          <p style="font-size: 13.5px; line-height: 1.6; margin: 0">
+            Sesi Anda akan berakhir dalam <b id="sessionCountdown">60</b> detik karena tidak ada aktivitas.
+          </p>
+        </div>
+        <div class="modal__foot">
+          <button class="btn btn--ghost" id="sessionLogout">Keluar Sekarang</button>
+          <button class="btn btn--primary" id="sessionExtend">Lanjutkan Sesi</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/js/portal.js"></script>
+  </body>
+</html>

@@ -1,0 +1,235 @@
+/* Login page: full-bleed promotional panel on the left, compact credential
+   box on the right - the standard retail internet-banking entry screen. */
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink-50);
+}
+
+.login-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  min-height: 0;
+}
+
+.promo {
+  position: relative;
+  padding: 54px 60px;
+  color: var(--white);
+  background: linear-gradient(140deg, #f2853b 0%, var(--brand-orange) 38%, #b3450c 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.promo::before,
+.promo::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.promo::before {
+  width: 420px;
+  height: 420px;
+  right: -140px;
+  top: -120px;
+}
+
+.promo::after {
+  width: 300px;
+  height: 300px;
+  left: -110px;
+  bottom: -130px;
+  background: rgba(0, 120, 122, 0.22);
+}
+
+.promo__logo {
+  height: 52px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  align-self: flex-start;
+}
+
+.promo__copy {
+  margin-top: auto;
+  position: relative;
+  max-width: 560px;
+}
+
+.promo__copy h1 {
+  font-size: 40px;
+  line-height: 1.12;
+  margin: 0 0 14px;
+  letter-spacing: -0.02em;
+}
+
+.promo__copy p {
+  font-size: 15.5px;
+  line-height: 1.65;
+  opacity: 0.94;
+  margin: 0 0 26px;
+}
+
+.promo__points {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.promo__point b {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.login-panel {
+  background: var(--white);
+  padding: 54px 46px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 4px solid var(--brand-teal);
+}
+
+.login-panel h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  color: var(--brand-teal-dark);
+}
+
+.login-panel .sub {
+  margin: 0 0 26px;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+
+.lang {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 26px;
+}
+
+.lang button {
+  border: 1px solid var(--ink-100);
+  background: var(--white);
+  color: var(--ink-500);
+  font-size: 11.5px;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+}
+
+.lang button.is-active {
+  background: var(--brand-teal);
+  border-color: var(--brand-teal);
+  color: var(--white);
+}
+
+.login-form .btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px;
+  font-size: 14.5px;
+}
+
+.login-error {
+  display: none;
+  background: #fce8e6;
+  border: 1px solid #f5c2bd;
+  color: #b3251b;
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  font-size: 12.5px;
+  margin-bottom: 16px;
+}
+
+.login-error.is-visible {
+  display: block;
+}
+
+.demo-users {
+  margin-top: 30px;
+  border-top: 1px solid var(--ink-100);
+  padding-top: 18px;
+}
+
+.demo-users h3 {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  margin: 0 0 10px;
+}
+
+.demo-users button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--ink-100);
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  margin-bottom: 7px;
+  font-size: 12.5px;
+  color: var(--ink-700);
+}
+
+.demo-users button:hover {
+  border-color: var(--brand-orange);
+  background: var(--brand-sand);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mobile-link {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--ink-500);
+  text-align: center;
+}
+
+.mobile-link a {
+  color: var(--brand-orange);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer-note {
+  padding: 14px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-500);
+  background: var(--white);
+  border-top: 1px solid var(--ink-100);
+}
+
+@media (max-width: 960px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+  .promo {
+    padding: 32px;
+  }
+  .promo__copy h1 {
+    font-size: 28px;
+  }
+}

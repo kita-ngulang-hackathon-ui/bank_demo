@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Internet Banking — Bank Demo Nusantara</title>
+    <link rel="icon" href="/shared/assets/logo-mark.svg" />
+    <link rel="stylesheet" href="/shared/css/tokens.css" />
+    <link rel="stylesheet" href="/css/login.css" />
+  </head>
+  <body>
+    <div class="demo-banner" id="demoBanner">
+      Demo environment — synthetic data — placeholder branding, not a real bank
+    </div>
+
+    <main class="login-shell">
+      <section class="promo">
+        <img class="promo__logo" src="/shared/assets/logo.svg" alt="Bank Demo Nusantara (placeholder logo)" />
+        <div class="promo__copy">
+          <h1>Internet Banking<br />untuk semua kebutuhan Anda</h1>
+          <p>
+            Transfer, bayar tagihan, top up, dan atur keuangan harian dari satu halaman.
+            Aman, cepat, dan tersedia 24 jam.
+          </p>
+          <div class="promo__points">
+            <div class="promo__point"><b>24/7</b>Layanan transaksi</div>
+            <div class="promo__point"><b>0 Rp</b>Biaya admin promo</div>
+            <div class="promo__point"><b>8</b>Nasabah demo siap pakai</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="login-panel">
+        <div class="lang">
+          <button class="is-active" type="button">ID</button>
+          <button type="button">EN</button>
+        </div>
+
+        <h2>Masuk ke akun Anda</h2>
+        <p class="sub">Gunakan User ID dan PIN Internet Banking.</p>
+
+        <div class="login-error" id="loginError"></div>
+
+        <form class="login-form" id="loginForm">
+          <div class="field">
+            <label for="username">User ID</label>
+            <input id="username" name="username" autocomplete="username" placeholder="andipratama" required />
+          </div>
+          <div class="field">
+            <label for="pin">PIN</label>
+            <input id="pin" name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" value="123456" required />
+            <div class="help">Semua nasabah demo memakai PIN 123456.</div>
+          </div>
+          <button class="btn btn--primary" type="submit" id="loginSubmit">Masuk</button>
+        </form>
+
+        <div class="demo-users">
+          <h3>Pilih nasabah demo</h3>
+          <div id="demoUsers"></div>
+        </div>
+
+        <p class="mobile-link">
+          Pakai aplikasi mobile? <a href="/wondr/">Buka wndr →</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer-note">
+      bank_demo — client fintech surface for the ADA Solutions retention engine. Placeholder branding;
+      no real bank assets are used.
+    </footer>
+
+    <script type="module" src="/js/login.js"></script>
+  </body>
+</html>
