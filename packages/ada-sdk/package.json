@@ -1,0 +1,12 @@
+{
+  "name": "@bank-demo/ada-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Thin JS SDK for the ADA Solutions ingestion API. Server-side only - it holds a tenant API key.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./src/*": "./src/*"
+  }
+}
