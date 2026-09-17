@@ -1,0 +1,12 @@
+{
+  "name": "@bank-demo/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "bank_demo backend. Holds the ADA tenant API key and serves both surfaces.",
+  "main": "src/index.js",
+  "dependencies": {
+    "@bank-demo/ada-sdk": "*",
+    "express": "^4.19.2"
+  }
+}
